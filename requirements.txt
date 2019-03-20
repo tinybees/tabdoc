@@ -1,0 +1,4 @@
+path.py>=11.5
+aelog>=1.0.3
+tablib>=0.12.1
+python-docx>=0.8.10
