@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 """
-from setuptools import setup
+from setuptools import find_packages, setup
 
 from tabdoc import __version__
 
@@ -36,14 +36,14 @@ setup(name='tabdoc',
       author='TinyBees',
       author_email='a598824322@qq.com',
       url='https://github.com/tinybees/tabdoc',
-      packages=["tabdoc", "tabdoc.templates"],
+      packages=find_packages(exclude=("tests",)),
       include_package_data=True,
       entry_points={},
       install_requires=['tablib>=0.12.1',
                         'python-docx>=0.8.10',
                         'path.py>=11.5',
                         'aelog>=1.0.3',
-                        'reportlab>=3.5.23'],
+                        'reportlab==3.5.21'],
       python_requires=">=3.5",
       keywords="tabular,datasets,excel,word,pdf",
       license='MIT',

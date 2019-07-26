@@ -10,6 +10,7 @@ from collections import MutableMapping, Sequence
 
 from path import Path
 from reportlab.lib import colors
+from reportlab.lib.fonts import addMapping
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
@@ -21,6 +22,10 @@ __all__ = ("PDFWriter",)
 
 pdfmetrics.registerFont(
     TTFont('simhei', Path(__file__).dirname().joinpath("templates/SimHei.ttf").abspath()))
+addMapping('simhei', 0, 0, 'simhei')  # normal
+addMapping('simhei', 0, 1, 'simhei_italic')  # italic
+addMapping('simhei', 1, 0, 'simhei_bold')  # bold
+addMapping('simhei', 1, 1, 'simhei_boldItalic')  # italic and bold
 
 
 class PDFWriter(object):
@@ -28,7 +33,7 @@ class PDFWriter(object):
     pdf book writer
     """
 
-    def __init__(self, pdf_name, pdf_path=None, water_mark=None, title=None):
+    def __init__(self, pdf_name, pdf_path=None, water_mark="", title=None):
         """
             excel book writer
         Args:
@@ -41,16 +46,15 @@ class PDFWriter(object):
         self.pdf_name = f"{pdf_name}.pdf"
         self.pdf_path = pdf_path
         self.document = SimpleDocTemplate(self.get_full_name(), pagesize=letter)
-        self.styles = self.get_sample_style_sheet()
-        self.water_mark = water_mark
+        self.document.water_mark = water_mark
         self.alignment_map = {"left": 0, "center": 1, "right": 2, "justify": 4}
         if title:
             self.add_heading(title, alignment="center")
 
-    @staticmethod
-    def get_sample_style_sheet():
+    @property
+    def styles(self, ):
         """
-            获取样式，这里会更改样式的字体，以便于支持中文
+        获取样式，这里会更改样式的字体，以便于支持中文
         Args:
         """
 
@@ -105,7 +109,7 @@ class PDFWriter(object):
                 row[i] = val.strftime("%Y-%m-%d %H:%M:%S")
             elif hasattr(val, 'isoformat'):
                 row[i] = val.isoformat()
-        return tuple(row)
+        return row
 
     def add_heading(self, head_text: str = None, *, level: int = 1, alignment="left"):
         """
@@ -177,7 +181,7 @@ class PDFWriter(object):
                     if isinstance(row, list):
                         row.extend(["" for _ in range(diff)])
                     else:
-                        table_data[index] = (*row, *["" for _ in range(diff)])
+                        table_data[index] = [*row, *["" for _ in range(diff)]]
                 table_data[index] = self._reduce_datetimes(row)
 
         else:
@@ -188,8 +192,16 @@ class PDFWriter(object):
                     table_data[index] = self._reduce_datetimes(row_)
                 else:
                     table_data[index] = self._reduce_datetimes(row.values())
+        cell_styles = self.styles["Normal"]
+        for row_index, row in enumerate(table_data):
+            for column_index, one_value in enumerate(row):
+                table_data[row_index][column_index] = Paragraph(str(one_value) if one_value else "", cell_styles)
 
-        table = Table(table_data, hAlign=table_halign)
+        # 第一列的宽度是其他列的两倍,第二列的宽度是其他列的1.5倍
+        column_len, column_width_per = len(table_data[-1]), self.document.width / (len(table_data[-1]) + 2)
+        column_width = [column_width_per * 2, column_width_per * 1.5,
+                        *[column_width_per for _ in range(column_len - 2)]]
+        table = Table(table_data, hAlign=table_halign, colWidths=column_width)
         # (列,行) (0, 0)(-1, -1)代表0列0行到所有的单元格
         table.setStyle(TableStyle([('FONT', (0, 0), (-1, -1), 'simhei'),  # 所有单元格设置雅黑字体
                                    ('ALIGN', (0, 0), (-1, 0), 'LEFT'),  # 第一列左对齐
@@ -200,6 +212,25 @@ class PDFWriter(object):
 
         self.story.append(table)
 
+    @staticmethod
+    def on_pages_setup(canvas, doc):
+        """
+        为每页增加水印，或者其他的logo等
+        Args:
+
+        Returns:
+
+        """
+        canvas.saveState()
+
+        canvas.setFont("simhei", 120)
+        canvas.rotate(30)  # 旋转30度
+        canvas.setFillAlpha(0.1)  # 设置透明度
+        canvas.setFillGray(0.50)  # 设置灰度
+        canvas.drawCentredString(6.5 * inch, 3.75 * inch, doc.water_mark)
+
+        canvas.restoreState()
+
     def save(self, ):
         """
         保存PDF
@@ -207,14 +238,31 @@ class PDFWriter(object):
         Returns:
 
         """
-        self.document.build(self.story)
+        self.document.build(self.story, onLaterPages=self.on_pages_setup)
 
 
 if __name__ == '__main__':
-    with PDFWriter("test", title="hahha") as pdf:
+    data = [['基础基213中学教学班数、班额情况 ', '', '', '', '', '', '', '', '', '', '', '', ' 单位：个'],
+            ['', '', '编号', '合计', '初中', '', '', '', '', '高中', '', '', ''],
+            ['', '', '', '', '计', '一年级', '二年级', '三年级', '四年级', '计', '一年级', '二年级', '三年级'],
+            ['甲', '', '乙', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
+            ['总计', '', '01', '', '', '', '', '', '', '', '', '', ''],
+            ['其中：四年制初中', '', '02', '', '', None, None, None, None, '', '', '', ''],
+            ['班\n额\n', '25人及以下', '03', '', '', None, None, None, None, '', None, None, None],
+            ['', '26-30人', '04', '', '', None, None, None, None, '', None, None, None],
+            ['', '31-35人', '05', '', '', None, None, None, None, '', None, None, None],
+            ['', '36-40人', '06', '', '', None, None, None, None, '', None, None, None],
+            ['', '41-45人', '07', '', '', None, None, None, None, '', None, None, None],
+            ['', '46-50人', '08', '', '', None, None, None, None, '', None, None, None],
+            ['', '51-55人', '09', '', '', None, None, None, None, '', None, None, None],
+            ['', '56-60人', '10', '', '', None, None, None, None, '', None, None, None],
+            ['', '61-65人', '11', '', '', None, None, None, None, '', None, None, None],
+            ['', '66人及以上', '12', '', '', None, None, None, None, '', None, None, None]]
+    import copy
+
+    with PDFWriter("test", title="hahha", water_mark="测试水印") as pdf:
         pdf.add_heading("第一个标题", level=3)
         pdf.add_paragraph("这是一个测试文档")
-        pdf.add_table([["很大", "很大", "很大", "很大fdsfa"],
-                       ["很大1fdsafd", "很大", "很大", "很大"],
-                       ["很大", "很大fdsfd", "很大", "很大"]],
-                      table_name="test")
+        pdf.add_paragraph("这是一个测试文档", alignment="right")
+        for _ in range(5):
+            pdf.add_table(copy.deepcopy(data), table_name="test")
