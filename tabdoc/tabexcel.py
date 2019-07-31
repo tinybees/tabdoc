@@ -72,6 +72,8 @@ class ExcelWriter(object):
         Returns:
 
         """
+        sheet_data = sheet_data if sheet_data else [{}]
+
         excel_sheet = tablib.Dataset(title=sheet_name)
 
         for row in sheet_data:
@@ -89,7 +91,7 @@ class ExcelWriter(object):
                     else:
                         sheet_data[index] = (*row, *["" for _ in range(diff)])
 
-        if isinstance(first, (MutableMapping,)):
+        if isinstance(first, MutableMapping):
             excel_sheet.headers = list(first.keys())
             for row in sheet_data:
                 row = self._reduce_datetimes(row.values())

@@ -161,7 +161,8 @@ class PDFWriter(object):
         Returns:
 
         """
-
+        table_data = table_data if table_data else [[""]]
+        
         if table_name:
             styles = self.styles.get('Heading4')
             styles.alignment = self.alignment_map.get(table_halign.lower(), "center")
