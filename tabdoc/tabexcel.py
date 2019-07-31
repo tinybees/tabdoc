@@ -6,7 +6,7 @@
 @software: PyCharm
 @time: 19-2-11 下午6:14
 """
-from collections import MutableMapping, Sequence
+from collections import Counter, MutableMapping, Sequence
 
 import tablib
 from path import Path
@@ -29,6 +29,7 @@ class ExcelWriter(object):
         self.excel_path = excel_path
         self.excel_name = f"{excel_name}.xls"
         self.excel_book = tablib.Databook()
+        self.sheet_names = Counter()  # 多个sheet name的映射，防止名称重复造成错误
 
     def __enter__(self):
         """
@@ -73,6 +74,9 @@ class ExcelWriter(object):
 
         """
         sheet_data = sheet_data if sheet_data else [{}]
+        #  处理sheet name可能出现重复的情况
+        self.sheet_names[sheet_name] += 1
+        sheet_name = sheet_name if self.sheet_names[sheet_name] == 1 else f"{sheet_name}{self.sheet_names[sheet_name]}"
 
         excel_sheet = tablib.Dataset(title=sheet_name)
 
