@@ -168,9 +168,10 @@ class PDFWriter(object):
             self.story.append(Paragraph(table_name, styles))
             self.story.append(Spacer(1, 0.15 * inch))
 
-        for row in table_data:
+        for index, row in enumerate(table_data):
             if not isinstance(row, (MutableMapping, Sequence)):
                 raise ValueError("table_data值数据类型错误,请检查")
+            table_data[index] = row[:36]  # 解决超过36列行高大于一页而报错的问题
 
         # 处理list或者tuple个别长度不一致的情况
         first = table_data[0]
@@ -239,30 +240,3 @@ class PDFWriter(object):
 
         """
         self.document.build(self.story, onLaterPages=self.on_pages_setup)
-
-
-if __name__ == '__main__':
-    data = [['基础基213中学教学班数、班额情况 ', '', '', '', '', '', '', '', '', '', '', '', ' 单位：个'],
-            ['', '', '编号', '合计', '初中', '', '', '', '', '高中', '', '', ''],
-            ['', '', '', '', '计', '一年级', '二年级', '三年级', '四年级', '计', '一年级', '二年级', '三年级'],
-            ['甲', '', '乙', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
-            ['总计', '', '01', '', '', '', '', '', '', '', '', '', ''],
-            ['其中：四年制初中', '', '02', '', '', None, None, None, None, '', '', '', ''],
-            ['班\n额\n', '25人及以下', '03', '', '', None, None, None, None, '', None, None, None],
-            ['', '26-30人', '04', '', '', None, None, None, None, '', None, None, None],
-            ['', '31-35人', '05', '', '', None, None, None, None, '', None, None, None],
-            ['', '36-40人', '06', '', '', None, None, None, None, '', None, None, None],
-            ['', '41-45人', '07', '', '', None, None, None, None, '', None, None, None],
-            ['', '46-50人', '08', '', '', None, None, None, None, '', None, None, None],
-            ['', '51-55人', '09', '', '', None, None, None, None, '', None, None, None],
-            ['', '56-60人', '10', '', '', None, None, None, None, '', None, None, None],
-            ['', '61-65人', '11', '', '', None, None, None, None, '', None, None, None],
-            ['', '66人及以上', '12', '', '', None, None, None, None, '', None, None, None]]
-    import copy
-
-    with PDFWriter("test", title="hahha", water_mark="测试水印") as pdf:
-        pdf.add_heading("第一个标题", level=3)
-        pdf.add_paragraph("这是一个测试文档")
-        pdf.add_paragraph("这是一个测试文档", alignment="right")
-        for _ in range(5):
-            pdf.add_table(copy.deepcopy(data), table_name="test")
