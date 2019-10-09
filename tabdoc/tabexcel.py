@@ -7,9 +7,14 @@
 @time: 19-2-11 下午6:14
 """
 from collections import Counter, MutableMapping, Sequence
+from io import BytesIO
 
 import tablib
+from openpyxl import Workbook
+from openpyxl.styles import Alignment
 from path import Path
+# noinspection PyProtectedMember
+from tablib.formats._xlsx import dset_sheet
 
 __all__ = ("ExcelWriter",)
 
@@ -27,8 +32,9 @@ class ExcelWriter(object):
             excel_name: excel 名称
         """
         self.excel_path = excel_path
-        self.excel_name = f"{excel_name}.xls"
+        self.excel_name = f"{excel_name}.xlsx"
         self.excel_book = tablib.Databook()
+        self.merge_cells_index = {}
         self.sheet_names = Counter()  # 多个sheet name的映射，防止名称重复造成错误
 
     def __enter__(self):
@@ -64,12 +70,13 @@ class ExcelWriter(object):
                 row[i] = val.isoformat()
         return tuple(row)
 
-    def add_sheet(self, sheet_name, sheet_data: list):
+    def add_sheet(self, sheet_name, sheet_data: list, merge_cells=None):
         """
         为excel添加工作表
         Args:
             sheet_name: 工作表的名称
             sheet_data: 工作表的数据， 必须是列表中嵌套元祖、列表或者字典（从records查询出来的数据库的数据）
+            merge_cells: 要合并的单元格的索引, [(start_row, start_column, end_row, end_column)],最小值从1开始
         Returns:
 
         """
@@ -107,6 +114,34 @@ class ExcelWriter(object):
                 excel_sheet.append(row)
 
         self.excel_book.add_sheet(excel_sheet)
+        verify_cells_index = []
+        for val in merge_cells:
+            verify_cells_index.extend(val)
+        if min(verify_cells_index) < 1:
+            raise ValueError("Min value is 1")
+        self.merge_cells_index[sheet_name] = merge_cells
+
+    # noinspection PyProtectedMember
+    def export_book(self, freeze_panes=True):
+        """Returns XLSX representation of DataBook."""
+
+        wb = Workbook()
+        for sheet in wb.worksheets:
+            wb.remove(sheet)
+        for i, dset in enumerate(self.excel_book._datasets):
+            ws = wb.create_sheet()
+            ws.title = dset.title if dset.title else 'Sheet%s' % i
+            dset_sheet(dset, ws, freeze_panes=freeze_panes)
+            # 合并单元格
+            if ws.title in self.merge_cells_index:
+                for ws_row_col in self.merge_cells_index[ws.title]:
+                    ws.merge_cells(start_row=ws_row_col[0], start_column=ws_row_col[1], end_row=ws_row_col[2],
+                                   end_column=ws_row_col[3])
+                    ws._get_cell(ws_row_col[0], ws_row_col[1]).alignment = Alignment(
+                        horizontal="center", vertical="center", wrap_text=True)
+        stream = BytesIO()
+        wb.save(stream)
+        return stream.getvalue()
 
     def save(self, ):
         """
@@ -121,4 +156,4 @@ class ExcelWriter(object):
             file_path = Path(self.excel_path).joinpath(self.excel_name).abspath()
 
         with open(file_path, "wb") as f:
-            f.write(self.excel_book.export("xls"))
+            f.write(self.export_book())
