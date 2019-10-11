@@ -11,10 +11,10 @@ from io import BytesIO
 
 import tablib
 from openpyxl import Workbook
-from openpyxl.styles import Alignment
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.utils import get_column_letter
 from path import Path
-# noinspection PyProtectedMember
-from tablib.formats._xlsx import dset_sheet
+from tablib.compat import unicode
 
 __all__ = ("ExcelWriter",)
 
@@ -131,7 +131,7 @@ class ExcelWriter(object):
         for i, dset in enumerate(self.excel_book._datasets):
             ws = wb.create_sheet()
             ws.title = dset.title if dset.title else 'Sheet%s' % i
-            dset_sheet(dset, ws, freeze_panes=freeze_panes)
+            self.dset_sheet(dset, ws, freeze_panes=freeze_panes)
             # 合并单元格
             if ws.title in self.merge_cells_index:
                 for ws_row_col in self.merge_cells_index[ws.title]:
@@ -142,6 +142,68 @@ class ExcelWriter(object):
         stream = BytesIO()
         wb.save(stream)
         return stream.getvalue()
+
+    # noinspection PyProtectedMember
+    @staticmethod
+    def dset_sheet(dataset, ws, freeze_panes=True):
+        """Completes given worksheet from given Dataset."""
+        _package = dataset._package(dicts=False)
+
+        for i, sep in enumerate(dataset._separators):
+            _offset = i
+            _package.insert((sep[0] + _offset), (sep[1],))
+
+        bold = Font(bold=True)
+
+        for i, row in enumerate(_package):
+            row_number = i + 1
+            for j, cell_value in enumerate(row):
+                col_idx = get_column_letter(j + 1)
+                cell = ws['%s%s' % (col_idx, row_number)]
+                cell_horizontal, cell_vertical = None, None
+                if isinstance(cell_value, dict):
+                    cell_color: str = cell_value.get("color", None)
+                    # 处理水平居中
+                    cell_horizontal: str = cell_value.get("horizontal", None)
+                    if cell_horizontal and cell_horizontal not in ("general", "left", "center", "right"):
+                        cell_horizontal = "general"  # 默认对其方式
+
+                    # 处理垂直居中
+                    cell_vertical: str = cell_value.get("vertical", None)
+                    if cell_vertical and cell_vertical not in ("top", "center", "bottom"):
+                        cell_vertical = "center"  # 默认对其方式
+
+                    cell_value: str = cell_value.get("value", '')
+                    if cell_color:
+                        cell.fill = PatternFill("solid", fgColor=cell_color.lstrip("# "))
+                cell.alignment = Alignment(wrap_text=True, horizontal=cell_horizontal, vertical=cell_vertical)
+                # 增加边框单线，这里是固定的
+                thin = Side(border_style="thin", color="000000")
+                cell.border = Border(top=thin, left=thin, right=thin, bottom=thin)
+
+                # bold headers
+                if (row_number == 1) and dataset.headers:
+                    # cell.value = unicode('%s' % col, errors='ignore')
+                    cell.value = unicode(cell_value)
+                    cell.font = bold
+                    if freeze_panes:
+                        #  Export Freeze only after first Line
+                        ws.freeze_panes = 'A2'
+
+                # bold separators
+                elif len(row) < dataset.width:
+                    cell.value = unicode('%s' % cell_value, errors='ignore')
+                    cell.font = bold
+
+                # wrap the rest
+                else:
+                    try:
+                        if '\n' in cell_value:
+                            cell.value = unicode('%s' % cell_value, errors='ignore')
+                        else:
+                            cell.value = unicode('%s' % cell_value, errors='ignore')
+                    except TypeError:
+                        cell.value = unicode(cell_value)
 
     def save(self, ):
         """
