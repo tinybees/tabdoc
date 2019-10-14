@@ -26,7 +26,7 @@ if __name__ == '__main__':
              ['', '56-60人', '10', '', '', '', '', '', '', '', '', '', ''],
              ['', '61-65人', '11', '', '', '', '', '', '', '', '', '', ''],
              ['', '66人及以上', '12', '', '', '', '', '', '', '', '', '',
-              {'value': '555', 'color': '#D8D8D8', 'horizontal': None, 'vertical': None}]]
+              {'value': '555', 'color': '#D8D8D8', 'horizontal': "bottom", 'vertical': "middle"}]]
 
     with ExcelWriter("test_excel") as xls:
         xls.add_sheet("测试", data1, merge_cells=[(1, 1, 1, 12), (2, 10, 2, 13)])
