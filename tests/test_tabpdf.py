@@ -38,4 +38,4 @@ if __name__ == '__main__':
         pdf.add_paragraph("这是一个测试文档")
         pdf.add_paragraph("这是一个测试文档", alignment="right")
         for data in [data1, data2]:
-            pdf.add_table(data, table_name="test")
+            pdf.add_table(data, table_name="测试表格标题 001")
