@@ -27,7 +27,7 @@ class ExcelWriter(object):
             excel_name: excel 名称
         """
         self.excel_path = excel_path
-        self.excel_name = f"{excel_name}.xls"
+        self.excel_name = f"{excel_name}.xlsx"
         self.excel_book = tablib.Databook()
         self.sheet_names = Counter()  # 多个sheet name的映射，防止名称重复造成错误
 
@@ -121,4 +121,4 @@ class ExcelWriter(object):
             file_path = Path(self.excel_path).joinpath(self.excel_name).abspath()
 
         with open(file_path, "wb") as f:
-            f.write(self.excel_book.export("xls"))
+            f.write(self.excel_book.export("xlsx"))
