@@ -114,12 +114,13 @@ class ExcelWriter(object):
                 excel_sheet.append(row)
 
         self.excel_book.add_sheet(excel_sheet)
-        verify_cells_index = []
-        for val in merge_cells:
-            verify_cells_index.extend(val)
-        if min(verify_cells_index) < 1:
-            raise ValueError("Min value is 1")
-        self.merge_cells_index[sheet_name] = merge_cells
+        if merge_cells:
+            verify_cells_index = []
+            for val in merge_cells:
+                verify_cells_index.extend(val)
+            if min(verify_cells_index) < 1:
+                raise ValueError("Min value is 1")
+            self.merge_cells_index[sheet_name] = merge_cells
 
     # noinspection PyProtectedMember
     def export_book(self, freeze_panes=True):

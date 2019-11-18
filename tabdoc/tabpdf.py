@@ -168,7 +168,7 @@ class PDFWriter(object):
         self.story.append(Spacer(1, 0.15 * inch))
 
     def add_table(self, table_data: list, table_name=None, data_align='CENTER', table_halign='CENTER',
-                  is_landscape=False):
+                  cell_styles: list = None, is_landscape=False):
         """
         为pdf添加表格数据
         Args:
@@ -178,6 +178,7 @@ class PDFWriter(object):
                 'LEFT', 'CENTER', 'RIGHT')
             table_halign: Horizontal alignment of the table on the page
                 (eg. 'LEFT', 'CENTER', 'RIGHT')
+            cell_styles: 每个单元格样式
             is_landscape: 是否横向展示，默认false
         Returns:
 
@@ -236,12 +237,19 @@ class PDFWriter(object):
         else:
             table = Table(table_data, hAlign=table_halign, colWidths=column_width)
         # (列,行) (0, 0)(-1, -1)代表0列0行到所有的单元格
-        table.setStyle(TableStyle([('FONT', (0, 0), (-1, -1), 'simhei'),  # 所有单元格设置雅黑字体
-                                   ('ALIGN', (0, 0), (-1, 0), 'LEFT'),  # 第一列左对齐
-                                   ('ALIGN', (0, 0), (0, 0), data_align),  # 第一个单元格
-                                   ('ALIGN', (1, 0), (-1, -1), data_align),  # 第一列到剩下的所有数据
-                                   ('INNERGRID', (0, 0), (-1, -1), 0.50, colors.black),
-                                   ('BOX', (0, 0), (-1, -1), 0.25, colors.black)]))
+        if not cell_styles:
+            table_style = TableStyle([('FONT', (0, 0), (-1, -1), 'simhei'),  # 所有单元格设置雅黑字体
+                                      ('ALIGN', (0, 0), (-1, 0), 'LEFT'),  # 第一列左对齐
+                                      ('ALIGN', (0, 0), (0, 0), data_align),  # 第一个单元格
+                                      ('ALIGN', (1, 0), (-1, -1), data_align),  # 第一列到剩下的所有数据
+                                      ('INNERGRID', (0, 0), (-1, -1), 0.50, colors.black),
+                                      ('BOX', (0, 0), (-1, -1), 0.25, colors.black)])
+        else:
+            table_style = TableStyle([('FONT', (0, 0), (-1, -1), 'simhei'),  # 所有单元格设置雅黑字体
+                                      ('INNERGRID', (0, 0), (-1, -1), 0.50, colors.black),
+                                      ('BOX', (0, 0), (-1, -1), 0.25, colors.black)])
+
+        table.setStyle(table_style)
         self.story.append(table)
 
     @staticmethod
