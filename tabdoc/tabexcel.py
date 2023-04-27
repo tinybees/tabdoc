@@ -14,7 +14,6 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from path import Path
-from tablib.compat import unicode
 
 __all__ = ("ExcelWriter",)
 
@@ -57,6 +56,7 @@ class ExcelWriter(object):
         """
         self.save()
 
+    # noinspection DuplicatedCode
     @staticmethod
     def _reduce_datetimes(row):
         """Receives a row, converts datetimes to strings."""
@@ -181,30 +181,20 @@ class ExcelWriter(object):
                 # 增加边框单线，这里是固定的
                 thin = Side(border_style="thin", color="000000")
                 cell.border = Border(top=thin, left=thin, right=thin, bottom=thin)
-
                 # bold headers
                 if (row_number == 1) and dataset.headers:
-                    # cell.value = unicode('%s' % col, errors='ignore')
-                    cell.value = unicode(cell_value)
+                    cell.value = str(cell_value)
                     cell.font = bold
                     if freeze_panes:
                         #  Export Freeze only after first Line
                         ws.freeze_panes = 'A2'
-
                 # bold separators
                 elif len(row) < dataset.width:
-                    cell.value = unicode('%s' % cell_value, errors='ignore')
+                    cell.value = str(cell_value)
                     cell.font = bold
-
                 # wrap the rest
                 else:
-                    try:
-                        if '\n' in cell_value:
-                            cell.value = unicode('%s' % cell_value, errors='ignore')
-                        else:
-                            cell.value = unicode('%s' % cell_value, errors='ignore')
-                    except TypeError:
-                        cell.value = unicode(cell_value)
+                    cell.value = str(cell_value.strip())
 
     def save(self, ):
         """

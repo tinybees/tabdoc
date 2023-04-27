@@ -56,6 +56,7 @@ class WordWriter(object):
         """
         self.save()
 
+    # noinspection DuplicatedCode
     @staticmethod
     def _reduce_datetimes(row):
         """Receives a row, converts datetimes to strings."""
@@ -203,7 +204,8 @@ class WordWriter(object):
         p = self.document.add_paragraph(style="p-first-line-not-indent-center")
         p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         run = p.add_run()
-        run.add_picture(image_path, width=Inches(5.8))
+        if image_path:
+            run.add_picture(image_path, width=Inches(5.8))
         bold_run = p.add_run(f"\n{image_text}")
         bold_run.font.size = Pt(12)
         bold_run.font.bold = True
