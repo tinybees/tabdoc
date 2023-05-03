@@ -8,15 +8,46 @@
 """
 from collections import MutableSequence
 from itertools import zip_longest
-from typing import List
+from typing import Any, List, Optional, Tuple, Union
 
 from docx import Document, document, table
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_ROW_HEIGHT_RULE, WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.oxml import OxmlElement, parse_xml
+from docx.oxml.ns import nsdecls, qn
 from docx.shared import Inches, Pt, RGBColor
+# noinspection PyProtectedMember
+from docx.table import _Cell, _Row
+from docx.text.run import Run
 from path import Path
 
-__all__ = ("WordWriter",)
+__all__ = ("WordWriter", "ValueAttr")
+
+
+class ValueAttr(object):
+    """
+    单元格值属性
+    """
+
+    def __init__(self, value: Any, bgcolor: Optional[str] = None, halignment: str = "center"):
+        """
+            单元格值属性
+        Args:
+            value: 表格值
+            bgcolor: 表格背景颜色
+            halignment: 单元格水平对齐方式
+        """
+        self.value: Any = value
+        self.bgcolor: Optional[str] = bgcolor
+        halignment_lower = halignment.lower()
+        if halignment_lower == "center":
+            self.halignment: str = WD_TABLE_ALIGNMENT.CENTER
+        elif halignment_lower == "left":
+            self.halignment = WD_TABLE_ALIGNMENT.LEFT
+        elif halignment_lower == "right":
+            self.halignment = WD_TABLE_ALIGNMENT.RIGHT
+        else:
+            ValueError("halignment值错误，应为center、left和right之一")
 
 
 class WordWriter(object):
@@ -70,8 +101,9 @@ class WordWriter(object):
                 row[i] = val.isoformat()
         return tuple(row)
 
-    def add_table(self, header_name: str, header_data: MutableSequence, table_data: MutableSequence,
-                  merge_cells: list = None, unit=None):
+    def add_table(self, header_name: str, header_data: List[List[Union[ValueAttr, str]]],
+                  table_data: List[List[Union[ValueAttr, str]]],
+                  merge_cells: List[Tuple[Tuple[int, int], Tuple[int, int]]] = None, unit=None):
         """
         为Word文档中添加表格
         Args:
@@ -98,7 +130,7 @@ class WordWriter(object):
 
         p = self.document.add_paragraph(style="p-first-line-not-indent-center")
         p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-        bold_run = p.add_run(header_name)
+        bold_run: Run = p.add_run(header_name)
         bold_run.font.size = Pt(12)
         bold_run.font.bold = True
 
@@ -130,18 +162,116 @@ class WordWriter(object):
         for index, header in enumerate(header_data):
             row = table_.rows[index]
             row.height_rule = WD_ROW_HEIGHT_RULE.AUTO
-            for i, val in enumerate(header):
-                if not row.cells[i].text:
-                    row.cells[i].text = str(val)
-                row.cells[i].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER  # 垂直居中
+            for col_index, cell_value in enumerate(header):
+                self._add_cell_value(row, col_index, cell_value)
         # 添加表体
-        for data in table_data:
+        for row_data in table_data:
             row = table_.add_row()
             row.height_rule = WD_ROW_HEIGHT_RULE.AUTO
-            for i, val in enumerate(data):
-                row.cells[i].text = str(val)
-                row.cells[i].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+            for col_index, cell_value in enumerate(row_data):
+                self._add_cell_value(row, col_index, cell_value)
+
         self.document.add_paragraph()  # 增加一个空行的段落
+
+    def _add_cell_value(self, row: _Row, col_index: int, cell_value: Union[ValueAttr, str]):
+        """
+        添加单元格的值和样式
+        Args:
+            row: 表格中的行
+            col_index: 列索引
+            cell_value: 单元格值
+        Returns:
+
+        """
+        if isinstance(cell_value, ValueAttr):
+            row.cells[col_index].text = str(cell_value.value)
+            if cell_value.bgcolor:
+                self.set_cell_bgcolor(row.cells[col_index], cell_value.bgcolor)
+            if cell_value.halignment:
+                self.set_cell_halignment(row.cells[col_index], cell_value.halignment)  # 水平对齐
+        else:
+            row.cells[col_index].text = str(cell_value)
+            self.set_cell_halignment(row.cells[col_index], WD_TABLE_ALIGNMENT.CENTER)  # 水平居中
+        row.cells[col_index].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER  # 垂直居中
+
+    @staticmethod
+    def set_cell_halignment(cell: _Cell, alignment: str = WD_TABLE_ALIGNMENT.CENTER):
+        """
+        设置单元格的水平对齐方式
+
+        默认为水平居中
+        Args:
+            cell: 单元格
+            alignment: 对齐方式默认居中
+        Returns:
+
+        """
+        cell.paragraphs[0].paragraph_format.alignment = alignment
+
+    @staticmethod
+    def set_cell_bgcolor(cell: _Cell, rgbcolor: str):
+        """
+        设置单元格的背景颜色
+        Args:
+            cell: 单元格
+            rgbcolor: 要设置的RGB颜色
+        Returns:
+
+        """
+        bgcolor_style = parse_xml(r'<w:shd {} w:fill="{}"/>'.format(nsdecls('w'), rgbcolor))
+        # noinspection PyProtectedMember
+        cell._tc.get_or_add_tcPr().append(bgcolor_style)
+
+    def set_row_bgcolor(self, row: _Row, rgbcolor: str):
+        """
+        设整行的背景颜色
+        Args:
+            row: 要设置的整行
+            rgbcolor: 要设置的RGB颜色
+        Returns:
+
+        """
+        for cell in row.cells:
+            self.set_cell_bgcolor(cell, rgbcolor)
+
+    @staticmethod
+    def set_cell_borders(cell: _Cell, **kwargs):
+        """
+        Set cell`s border
+        Usage:
+        set_cell_border(
+            cell,
+            top={"sz": 12, "val": "single", "color": "#FF0000", "space": "0"},
+            bottom={"sz": 12, "color": "#00FF00", "val": "single"},
+            start={"sz": 24, "val": "dashed", "shadow": "true"},
+            end={"sz": 12, "val": "dashed"},
+        )
+        """
+        # noinspection PyProtectedMember
+        tc_pr = cell._tc.get_or_add_tcPr()
+
+        # check for tag existnace, if none found, then create one
+        tc_borders = tc_pr.first_child_found_in("w:tcBorders")
+        if tc_borders is None:
+            tc_borders = OxmlElement('w:tcBorders')
+            tc_pr.append(tc_borders)
+
+        # list over all available tags
+        for edge in ('start', 'top', 'end', 'bottom', 'insideH', 'insideV'):
+            edge_data = kwargs.get(edge)
+            if edge_data:
+                tag = 'w:{}'.format(edge)
+
+                # check for tag existnace, if none found, then create one
+                element = tc_borders.find(qn(tag))
+                if element is None:
+                    element = OxmlElement(tag)
+                    tc_borders.append(element)
+
+                # looks like order of attributes is important
+                for key in ["sz", "val", "color", "space", "shadow"]:
+                    if key in edge_data:
+                        element.set(qn('w:{}'.format(key)), str(edge_data[key]))
 
     def add_paragraph(self, bold_text: List[str] = None, *, other_text: List[str] = None):
         """
