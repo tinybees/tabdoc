@@ -103,7 +103,8 @@ class WordWriter(object):
 
     def add_table(self, header_name: str, header_data: List[List[Union[ValueAttr, str]]],
                   table_data: List[List[Union[ValueAttr, str]]],
-                  merge_cells: List[Tuple[Tuple[int, int], Tuple[int, int]]] = None, unit=None):
+                  merge_cells: List[Tuple[Tuple[int, int], Tuple[int, int]]] = None,
+                  unit=None, body_fontsize=10):
         """
         为Word文档中添加表格
         Args:
@@ -112,6 +113,7 @@ class WordWriter(object):
             table_data: 表格的body数据，可能有多个
             merge_cells: 要合并的单元格
             unit: 表格数据的单位
+            body_fontsize: body的字号大小
         Returns:
 
         """
@@ -163,36 +165,43 @@ class WordWriter(object):
             row = table_.rows[index]
             row.height_rule = WD_ROW_HEIGHT_RULE.AUTO
             for col_index, cell_value in enumerate(header):
-                self._add_cell_value(row, col_index, cell_value)
+                self._add_cell_value(row.cells[col_index], cell_value, body_fontsize)
         # 添加表体
         for row_data in table_data:
             row = table_.add_row()
             row.height_rule = WD_ROW_HEIGHT_RULE.AUTO
             for col_index, cell_value in enumerate(row_data):
-                self._add_cell_value(row, col_index, cell_value)
+                self._add_cell_value(row.cells[col_index], cell_value, body_fontsize)
 
         self.document.add_paragraph()  # 增加一个空行的段落
 
-    def _add_cell_value(self, row: _Row, col_index: int, cell_value: Union[ValueAttr, str]):
+    def _add_cell_value(self, cell: _Cell, cell_value: Union[ValueAttr, str], fontsize: int):
         """
         添加单元格的值和样式
         Args:
-            row: 表格中的行
-            col_index: 列索引
+            cell: 表格中的单元格
             cell_value: 单元格值
+            fontsize: 字号大小
         Returns:
 
         """
         if isinstance(cell_value, ValueAttr):
-            row.cells[col_index].text = str(cell_value.value)
+            # cell.text = str(cell_value.value)
+            # 因为样式中的字号无效，只能手动设置字号
+            cell_body = cell.paragraphs[0].add_run(str(cell_value.value))
+            cell_body.font.size = Pt(fontsize)
+
             if cell_value.bgcolor:
-                self.set_cell_bgcolor(row.cells[col_index], cell_value.bgcolor)
+                self.set_cell_bgcolor(cell, cell_value.bgcolor)
             if cell_value.halignment:
-                self.set_cell_halignment(row.cells[col_index], cell_value.halignment)  # 水平对齐
+                self.set_cell_halignment(cell, cell_value.halignment)  # 水平对齐
         else:
-            row.cells[col_index].text = str(cell_value)
-            self.set_cell_halignment(row.cells[col_index], WD_TABLE_ALIGNMENT.CENTER)  # 水平居中
-        row.cells[col_index].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER  # 垂直居中
+            # cell.text = str(cell_value)
+            # 因为样式中的字号无效，只能手动设置字号
+            cell_body = cell.paragraphs[0].add_run(str(cell_value))
+            cell_body.font.size = Pt(fontsize)
+            self.set_cell_halignment(cell, WD_TABLE_ALIGNMENT.CENTER)  # 水平居中
+        cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER  # 垂直居中
 
     @staticmethod
     def set_cell_halignment(cell: _Cell, alignment: str = WD_TABLE_ALIGNMENT.CENTER):
