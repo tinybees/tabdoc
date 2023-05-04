@@ -29,13 +29,14 @@ class ValueAttr(object):
     单元格值属性
     """
 
-    def __init__(self, value: Any, bgcolor: Optional[str] = None, halignment: str = "center"):
+    def __init__(self, value: Any, bgcolor: Optional[str] = None, halignment: str = "center", is_bold: bool = False):
         """
             单元格值属性
         Args:
             value: 表格值
             bgcolor: 表格背景颜色
             halignment: 单元格水平对齐方式
+            is_bold: 是否加粗
         """
         self.value: Any = value
         self.bgcolor: Optional[str] = bgcolor
@@ -48,6 +49,7 @@ class ValueAttr(object):
             self.halignment = WD_TABLE_ALIGNMENT.RIGHT
         else:
             ValueError("halignment值错误，应为center、left和right之一")
+        self.is_bold: bool = is_bold
 
 
 class WordWriter(object):
@@ -190,6 +192,8 @@ class WordWriter(object):
             # 因为样式中的字号无效，只能手动设置字号
             cell_body = cell.paragraphs[0].add_run(str(cell_value.value))
             cell_body.font.size = Pt(fontsize)
+            if cell_value.is_bold:
+                cell_body.font.bold = True
 
             if cell_value.bgcolor:
                 self.set_cell_bgcolor(cell, cell_value.bgcolor)
