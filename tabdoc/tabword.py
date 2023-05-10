@@ -48,7 +48,7 @@ class ValueAttr(object):
         elif halignment_lower == "right":
             self.halignment = WD_TABLE_ALIGNMENT.RIGHT
         else:
-            ValueError("halignment值错误，应为center、left和right之一")
+            self.halignment: str = WD_TABLE_ALIGNMENT.CENTER
         self.is_bold: bool = is_bold
 
 
