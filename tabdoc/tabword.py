@@ -177,6 +177,67 @@ class WordWriter(object):
 
         self.document.add_paragraph()  # 增加一个空行的段落
 
+    def add_table2(self, header_name: str, rows_cols: Tuple[int, int],
+                   table_data: List[List[Union[ValueAttr, str]]],
+                   merge_cells: List[Tuple[Tuple[int, int], Tuple[int, int]]] = None,
+                   unit=None, body_fontsize=10):
+        """
+        为Word文档中添加表格
+        Args:
+            header_name: 表格的表头文字
+            rows_cols: 报表的行列
+            table_data: 表格的body数据，可能有多个
+            merge_cells: 要合并的单元格
+            unit: 表格数据的单位
+            body_fontsize: body的字号大小
+        Returns:
+
+        """
+        if not isinstance(table_data, MutableSequence):
+            raise ValueError("table data值类型错误,请检查")
+        if not isinstance(merge_cells, MutableSequence):
+            raise ValueError("merge cells值类型错误,请检查")
+        for value in table_data:
+            if not isinstance(value, MutableSequence):
+                raise ValueError("table data值类型错误,请检查")
+
+        p = self.document.add_paragraph(style="p-first-line-not-indent-center")
+        p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        bold_run: Run = p.add_run(header_name)
+        bold_run.font.size = Pt(12)
+        bold_run.font.bold = True
+
+        if unit:
+            unit_p = self.document.add_paragraph()
+            unit_p.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+            unit_body = unit_p.add_run(f"单位：{unit}")
+            unit_body.font.size = Pt(10.5)
+
+        # analysis-data需要模板中指定，指定的方式要简单很多
+        table_: table.Table = self.document.add_table(*rows_cols, "analysis-data")
+        for value in merge_cells:
+            if not isinstance(value, MutableSequence) and len(value) != 2:
+                raise ValueError("merge cells值类型错误,请检查")
+            for row_index, col_index in value:
+                if row_index > rows_cols[0] or col_index > rows_cols[1]:
+                    raise ValueError("merge cells值错误,请检查")
+
+        # 合并单元格
+        if merge_cells:
+            for cell, other_cell in merge_cells:
+                table_.cell(*cell).merge(table_.cell(*other_cell))
+        # 设置表居中和自适应
+        table_.alignment = WD_TABLE_ALIGNMENT.CENTER
+        table_.autofit = True
+        # 添加表头，添加表体
+        for index, row_data in enumerate(table_data):
+            row = table_.rows[index]
+            row.height_rule = WD_ROW_HEIGHT_RULE.AUTO
+            for col_index, cell_value in enumerate(row_data):
+                self._add_cell_value(row.cells[col_index], cell_value, body_fontsize)
+
+        self.document.add_paragraph()  # 增加一个空行的段落
+
     def _add_cell_value(self, cell: _Cell, cell_value: Union[ValueAttr, str], fontsize: int):
         """
         添加单元格的值和样式
