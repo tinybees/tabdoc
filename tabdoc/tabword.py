@@ -405,7 +405,7 @@ class WordWriter(object):
         Returns:
 
         """
-        p = self.document.add_paragraph(style="p-first-line-not-indent-center")
+        p = self.document.add_paragraph(style="picture-p-first-line-not-indent-center")
         p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         run = p.add_run()
         if image_path:
