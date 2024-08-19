@@ -6,8 +6,9 @@
 @software: PyCharm
 @time: 19-2-11 下午6:14
 """
-from collections import Counter, MutableMapping, Sequence
+from collections import Counter
 from io import BytesIO
+from typing import MutableMapping, Sequence
 
 import tablib
 from openpyxl import Workbook

@@ -6,9 +6,8 @@
 @software: PyCharm
 @time: 19-2-11 下午6:14
 """
-from collections import MutableSequence
 from itertools import zip_longest
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 from docx import Document, document, table
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_ROW_HEIGHT_RULE, WD_TABLE_ALIGNMENT
@@ -103,6 +102,7 @@ class WordWriter(object):
                 row[i] = val.isoformat()
         return tuple(row)
 
+    # noinspection DuplicatedCode
     def add_table(self, header_name: str, header_data: List[List[Union[ValueAttr, str]]],
                   table_data: List[List[Union[ValueAttr, str]]],
                   merge_cells: List[Tuple[Tuple[int, int], Tuple[int, int]]] = None,
@@ -177,6 +177,7 @@ class WordWriter(object):
 
         self.document.add_paragraph()  # 增加一个空行的段落
 
+    # noinspection DuplicatedCode
     def add_table2(self, header_name: str, rows_cols: Tuple[int, int],
                    table_data: List[List[Union[ValueAttr, str]]],
                    merge_cells: List[Tuple[Tuple[int, int], Tuple[int, int]]] = None,

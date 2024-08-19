@@ -6,7 +6,7 @@
 @software: PyCharm
 @time: 19-2-11 下午6:14
 """
-from collections import MutableMapping, Sequence
+from typing import MutableMapping, Sequence
 
 from path import Path
 from reportlab.lib import colors
@@ -167,6 +167,7 @@ class PDFWriter(object):
         self.story.append(Paragraph(paragraph_text, styles))
         self.story.append(Spacer(1, 0.15 * inch))
 
+    # noinspection PyUnusedLocal
     def add_table(self, table_data: list, table_name=None, data_align='CENTER', table_halign='CENTER',
                   cell_styles: list = None, is_landscape=False):
         """
@@ -174,10 +175,8 @@ class PDFWriter(object):
         Args:
             table_name: 表格的名称
             table_data: 表格的数据， 必须是列表中嵌套元祖、列表或者字典（从records查询出来的数据库的数据）
-            data_align: The alignment of the data inside the table (eg.
-                'LEFT', 'CENTER', 'RIGHT')
-            table_halign: Horizontal alignment of the table on the page
-                (eg. 'LEFT', 'CENTER', 'RIGHT')
+            data_align: The alignment of the data inside the table ('LEFT', 'CENTER', 'RIGHT')
+            table_halign: Horizontal alignment of the table on the page('LEFT', 'CENTER', 'RIGHT')
             cell_styles: 每个单元格样式
             is_landscape: 是否横向展示，默认false
         Returns:
