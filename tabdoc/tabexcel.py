@@ -67,7 +67,7 @@ class ExcelWriter(object):
         for i, val in enumerate(row):
             if hasattr(val, "strftime"):
                 row[i] = val.strftime("%Y-%m-%d %H:%M:%S")
-            elif hasattr(val, 'isoformat'):
+            elif hasattr(val, "isoformat"):
                 row[i] = val.isoformat()
         return tuple(row)
 
@@ -159,43 +159,46 @@ class ExcelWriter(object):
 
         for i, row in enumerate(_package):
             row_number = i + 1
-            for j, cell_value in enumerate(row):
+            for j, row_cell_value in enumerate(row):
                 col_idx = get_column_letter(j + 1)
                 cell = ws['%s%s' % (col_idx, row_number)]
                 cell_horizontal, cell_vertical = None, None
-                if isinstance(cell_value, dict):
-                    cell_color: str = cell_value.get("color", None)
+                if isinstance(row_cell_value, dict):
+                    cell_color: str = row_cell_value.get("color", None)
                     # 处理水平居中
-                    cell_horizontal: str = cell_value.get("horizontal", None)
+                    cell_horizontal: str = row_cell_value.get("horizontal", None)
                     if cell_horizontal and cell_horizontal not in ("general", "left", "center", "right"):
                         cell_horizontal = "general"  # 默认对其方式
 
                     # 处理垂直居中
-                    cell_vertical: str = cell_value.get("vertical", None)
+                    cell_vertical: str = row_cell_value.get("vertical", None)
                     if cell_vertical and cell_vertical not in ("top", "center", "bottom"):
                         cell_vertical = "center"  # 默认对其方式
 
-                    cell_value: str = cell_value.get("value", '')
+                    cell_value: str = str(row_cell_value.get("value") or "")
                     if cell_color:
                         cell.fill = PatternFill("solid", fgColor=cell_color.lstrip("# "))
+                else:
+                    cell_value = str(row_cell_value or "")
+                # 设置对齐方式
                 cell.alignment = Alignment(wrap_text=True, horizontal=cell_horizontal, vertical=cell_vertical)
                 # 增加边框单线，这里是固定的
                 thin = Side(border_style="thin", color="000000")
                 cell.border = Border(top=thin, left=thin, right=thin, bottom=thin)
                 # bold headers
                 if (row_number == 1) and dataset.headers:
-                    cell.value = str(cell_value)
+                    cell.value = cell_value
                     cell.font = bold
                     if freeze_panes:
                         #  Export Freeze only after first Line
                         ws.freeze_panes = 'A2'
                 # bold separators
                 elif len(row) < dataset.width:
-                    cell.value = str(cell_value)
+                    cell.value = cell_value
                     cell.font = bold
                 # wrap the rest
                 else:
-                    cell.value = str(cell_value.strip())
+                    cell.value = cell_value.strip()
 
     def save(self, ):
         """
