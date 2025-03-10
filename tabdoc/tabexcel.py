@@ -198,7 +198,7 @@ class ExcelWriter(object):
                     cell.font = bold
                 # wrap the rest
                 else:
-                    cell.value = cell_value.strip()
+                    cell.value = cell_value
 
     def save(self, ):
         """

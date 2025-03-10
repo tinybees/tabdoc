@@ -7,7 +7,7 @@
 @time: 19-3-20 下午6:29
 """
 
-__version__ = "1.0.7"
+__version__ = "1.0.8"
 
 from .tabexcel import *
 from .tabpdf import *
