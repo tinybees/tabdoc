@@ -8,7 +8,7 @@
 """
 from collections import Counter
 from io import BytesIO
-from typing import MutableMapping, Sequence
+from typing import MutableMapping, Sequence, Union
 
 import tablib
 from openpyxl import Workbook
@@ -175,11 +175,11 @@ class ExcelWriter(object):
                     if cell_vertical and cell_vertical not in ("top", "center", "bottom"):
                         cell_vertical = "center"  # 默认对其方式
 
-                    cell_value: str = str(row_cell_value.get("value") or "")
+                    cell_value: Union[str, int, float] = row_cell_value.get("value") or ""
                     if cell_color:
                         cell.fill = PatternFill("solid", fgColor=cell_color.lstrip("# "))
                 else:
-                    cell_value = str(row_cell_value or "")
+                    cell_value = row_cell_value or ""
                 # 设置对齐方式
                 cell.alignment = Alignment(wrap_text=True, horizontal=cell_horizontal, vertical=cell_vertical)
                 # 增加边框单线，这里是固定的
